@@ -1,0 +1,11 @@
+315a21af38cff1b61fee28d631d8e782  usr/bin/llfw
+74479d420f55b96fdf2e962c10211952  usr/bin/llfw.py
+962131c3604b4cb0aef67a17712c684e  usr/lib/python3.11/dist-packages/llfw-1.0.egg-info/PKG-INFO
+68b329da9893e34099c7d8ad5cb9c940  usr/lib/python3.11/dist-packages/llfw-1.0.egg-info/dependency_links.txt
+1e1b2a4369b967f087823b51ab022030  usr/lib/python3.11/dist-packages/llfw-1.0.egg-info/entry_points.txt
+397a43a1a3e2c36d674b823293959b9f  usr/lib/python3.11/dist-packages/llfw-1.0.egg-info/requires.txt
+68b329da9893e34099c7d8ad5cb9c940  usr/lib/python3.11/dist-packages/llfw-1.0.egg-info/top_level.txt
+5057749d9883d217e76532fcbd00c0af  usr/share/applications/llfw.desktop
+430effff8ea81c942a3eb37e79301aff  usr/share/doc/llfw/changelog.Debian.gz
+e3b7fb6796b0f70354afde9775548db1  usr/share/doc/llfw/copyright
+65e50c12e9113389e59433e998b90fcb  usr/share/icons/hicolor/48x48/apps/llfwlo.png

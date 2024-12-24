@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Name=LLFW
+Comment=Low-Level Formatter Wizard
+Exec=sudo -E env XDG_RUNTIME_DIR=/tmp/runtime-root python3 /usr/bin/llfw.py
+Icon=/usr/share/icons/hicolor/48x48/apps/llfwlo.png
+Terminal=true
+Type=Application
+Categories=Utility
+
+Name[tr_TR]=LLFW

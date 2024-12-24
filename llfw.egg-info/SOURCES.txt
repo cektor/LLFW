@@ -1,0 +1,9 @@
+llfw.desktop
+llfwlo.png
+setup.py
+llfw.egg-info/PKG-INFO
+llfw.egg-info/SOURCES.txt
+llfw.egg-info/dependency_links.txt
+llfw.egg-info/entry_points.txt
+llfw.egg-info/requires.txt
+llfw.egg-info/top_level.txt

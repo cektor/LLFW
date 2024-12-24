@@ -1,0 +1,4 @@
+#!/bin/bash
+llfw.py usr/bin/
+llfw.desktop usr/share/applications/
+debian/llfwlo.png /usr/share/icons/hicolor/48x48/apps/
