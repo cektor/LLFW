@@ -2,7 +2,7 @@ Package: llfw
 Version: 1.0-1
 Architecture: all
 Maintainer: Fatih ÖNDER <fatih@algyazilim.com>
-Installed-Size: 49
+Installed-Size: 50
 Depends: python3, python3-pyqt5
 Section: admin
 Priority: optional
