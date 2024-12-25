@@ -168,7 +168,6 @@ class FormatWorker(QThread):
             self.status.emit(self.tr['unmounting'].format(self.device))
             try:
                 subprocess.run(['umount', self.device], check=False)
-                subprocess.run(['umount', f"{self.device}1"], check=False)
             except:
                 pass
 
@@ -207,26 +206,8 @@ class FormatWorker(QThread):
                              check=True)
                 self.progress.emit(100)
 
-            # MBR Formatlama ve FAT32 ile biçimlendirme
-            self.status.emit("Formatting the disk to MBR...")
-            subprocess.run(['parted', self.device, '--script', 'mklabel', 'msdos'], check=True)
-
-            self.status.emit("Creating a FAT32 partition...")
-            subprocess.run(['parted', self.device, '--script', 'mkpart', 'primary', 'fat32', '1MiB', '100%'], check=True)
-
-            self.status.emit("Ensuring the partition is unmounted...")
-            partition = self.device + "1"
-            subprocess.run(['umount', partition], check=False)
-
-            self.status.emit("Formatting partition to FAT32...")
-            subprocess.run(['mkfs.fat', '-F', '32', partition], check=True)
-
             self.status.emit(self.tr['operation_complete'])
             self.finished.emit(True)
-
-        except subprocess.CalledProcessError as e:
-            self.status.emit(f"{self.tr['error']}: Command failed with code {e.returncode}. Command: {' '.join(e.cmd)}")
-            self.finished.emit(False)
 
         except Exception as e:
             self.status.emit(f"{self.tr['error']}: {str(e)}")
