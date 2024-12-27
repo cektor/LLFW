@@ -1,12 +1,13 @@
 import sys
 import os
 import subprocess
+import time
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                            QHBoxLayout, QLabel, QComboBox, QProgressBar, 
-                           QPushButton, QMessageBox, QTextEdit, QCheckBox, QDialog)
+                           QPushButton, QMessageBox, QTextEdit, QCheckBox, QDialog,
+                           QTabWidget, QRadioButton, QSpinBox, QScrollArea)
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QSettings
 from PyQt5.QtGui import QPalette, QColor, QIcon, QPixmap
-
 # Çeviriler
 TRANSLATIONS = {
     'en': {
@@ -52,7 +53,54 @@ TRANSLATIONS = {
         'secure_erase_start': "Starting secure erase...",
         'operation_progress': "Operation in progress: {}/{} MB",
         'operation_complete': "Format operation completed!",
-        'language': "Language:"
+        'language': "Language:",
+        'settings_tab': "Settings",
+        'language_settings': "Language Settings",
+        'theme_settings': "Theme Settings",
+        'dark_theme': "Dark Theme",
+        'light_theme': "Light Theme",
+        'theme_restart': "Theme changes will take effect after restart.",
+        'llf_tab': "Low Level Format",
+        'disk_format_tab': "Disk Format",
+        'about_tab': "About",
+        'format_type_label': "Format Type:",
+        'format_button': "Format",
+        'refresh_button': "Refresh Disk List",
+        'format_success': "Format completed successfully!",
+        'format_warning': "This will format {} with {}. All data will be lost!\n\nContinue?",
+        'partition_title': "Partitioning",
+        'partition_count': "Number of Partitions:",
+        'partition_size': "Partition {} Size (GB):",
+        'format_type': "Format Type:",
+        'security_settings': "Security Settings",
+        'confirm_operations': "Ask for confirmation before operations",
+        'detailed_logging': "Keep detailed logs",
+        'format_settings': "Format Settings",
+        'default_format_type': "Default Format Type:",
+        'performance_settings': "Performance Settings",
+        'operation_speed': "Operation Speed:",
+        'speed_normal': "Normal",
+        'speed_fast': "Fast",
+        'speed_very_fast': "Very Fast",
+        'auto_refresh': "Auto refresh disk list",
+        'advanced_settings': "Advanced Settings",
+        'partition_alignment': "Partition Alignment (MiB):",
+        'advanced_mode': "Advanced mode (show additional options)",
+        'disk_not_found': "Disk not found: {}",
+        'disk_in_use': "Disk is in use: {}",
+        'disk_size_error': "Could not get disk size: {}",
+        'invalid_partition_count': "Invalid partition count!",
+        'partition_settings_missing': "Partition settings are missing!",
+        'partition_create_error': "Could not create partition {}!",
+        'partition_format_error': "Could not format partition {}! Command: {}",
+        'total_size_error': "Total partition size ({} GB) cannot be larger than disk size ({} GB)!",
+        'format_type_update_error': "Error updating format type: {}",
+        'partition_not_ready': "Partition is not ready: {}",
+        'command_timeout': "Command timed out: {}",
+        'command_error': "Command error: {}",
+        'unexpected_error': "Unexpected error: {}",
+        'view_logs': "View Logs",
+        'log_dir_error': "Could not open log directory: {}"
     },
     'tr': {
         'window_title': "LLFW",
@@ -97,7 +145,54 @@ TRANSLATIONS = {
         'secure_erase_start': "Güvenli silme başlatılıyor...",
         'operation_progress': "İşlem devam ediyor: {}/{} MB",
         'operation_complete': "Format işlemi tamamlandı!",
-        'language': "Dil:"
+        'language': "Dil:",
+        'settings_tab': "Seçenekler",
+        'language_settings': "Dil Ayarları",
+        'theme_settings': "Tema Ayarları",
+        'dark_theme': "Koyu Tema",
+        'light_theme': "Açık Tema",
+        'theme_restart': "Tema değişiklikleri yeniden başlatma sonrası etkin olacak.",
+        'llf_tab': "Düşük Seviye Format",
+        'disk_format_tab': "Disk Biçimlendir",
+        'about_tab': "Hakkında",
+        'format_type_label': "Format Tipi:",
+        'format_button': "Biçimlendir",
+        'refresh_button': "Disk Listesini Yenile",
+        'format_success': "Biçimlendirme başarıyla tamamlandı!",
+        'format_warning': "{} diski {} olarak biçimlendirilecek. Tüm veriler silinecek!\n\nDevam edilsin mi?",
+        'partition_title': "Bölümlendirme",
+        'partition_count': "Bölüm Sayısı:",
+        'partition_size': "Bölüm {} Boyutu (GB):",
+        'format_type': "Format Tipi:",
+        'security_settings': "Güvenlik Ayarları",
+        'confirm_operations': "İşlemler için onay iste",
+        'detailed_logging': "Detaylı log kayıtları tut",
+        'format_settings': "Format Ayarları",
+        'default_format_type': "Varsayılan Format Tipi:",
+        'performance_settings': "Performans Ayarları",
+        'operation_speed': "İşlem Hızı:",
+        'speed_normal': "Normal",
+        'speed_fast': "Hızlı",
+        'speed_very_fast': "Çok Hızlı",
+        'auto_refresh': "Disk listesini otomatik yenile",
+        'advanced_settings': "Gelişmiş Ayarlar",
+        'partition_alignment': "Bölüm Hizalama (MiB):",
+        'advanced_mode': "Gelişmiş mod (ek seçenekleri göster)",
+        'disk_not_found': "Disk bulunamadı: {}",
+        'disk_in_use': "Disk kullanımda: {}",
+        'disk_size_error': "Disk boyutu alınamadı: {}",
+        'invalid_partition_count': "Geçersiz bölüm sayısı!",
+        'partition_settings_missing': "Bölüm ayarları eksik!",
+        'partition_create_error': "Bölüm {} oluşturulamadı!",
+        'partition_format_error': "Bölüm {} formatlanamadı! Komut: {}",
+        'total_size_error': "Toplam bölüm boyutu ({} GB) disk boyutundan ({} GB) büyük olamaz!",
+        'format_type_update_error': "Format tipi güncellenirken hata: {}",
+        'partition_not_ready': "Bölüm hazır değil: {}",
+        'command_timeout': "Komut zaman aşımına uğradı: {}",
+        'command_error': "Komut hatası: {}",
+        'unexpected_error': "Beklenmeyen hata: {}",
+        'view_logs': "Logları Görüntüle",
+        'log_dir_error': "Log dizini açılamadı: {}"
     }
 }
 
@@ -247,13 +342,24 @@ class MainWindow(QMainWindow):
         # QSettings ayarlarını başlat
         self.settings = QSettings('ALG', 'LLFW')
         self.current_language = self.settings.value('language', 'tr')
+        self.current_theme = self.settings.value('theme', 'dark')
         self.tr = TRANSLATIONS[self.current_language]
+        
+        # Temayı uygula
+        self.apply_theme()
         
         self.init_ui()
 
+    def apply_theme(self):
+        """Seçili temayı uygula"""
+        if self.current_theme == 'dark':
+            app.setPalette(DarkPalette())
+        else:
+            app.setPalette(app.style().standardPalette())
+
     def init_ui(self):
         self.setWindowTitle(self.tr['window_title'])
-        self.setMinimumSize(400, 500)
+        self.setMinimumSize(600, 500)
         
         # Logo yolu
         self.logo_path = get_resource_path("llfwlo.png")
@@ -264,29 +370,18 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(main_widget)
         layout = QVBoxLayout(main_widget)
 
-        # Dil seçimi
-        lang_layout = QHBoxLayout()
-        lang_label = QLabel(self.tr['language'])
-        self.lang_combo = QComboBox()
-        self.lang_combo = QComboBox()
-        self.lang_combo.addItem("Türkçe", "tr")
-        self.lang_combo.addItem("English", "en")
+        # Tab widget oluştur
+        tab_widget = QTabWidget()
         
-        # Mevcut dili seç
-        index = self.lang_combo.findData(self.current_language)
-        if index >= 0:
-            self.lang_combo.setCurrentIndex(index)
-            
-        self.lang_combo.currentIndexChanged.connect(self.change_language)
-        lang_layout.addWidget(lang_label)
-        lang_layout.addWidget(self.lang_combo)
-        layout.addLayout(lang_layout)
-
+        # Tab 1: LLF İşlemi
+        llf_tab = QWidget()
+        llf_layout = QVBoxLayout(llf_tab)
+        
         # Root kontrol
         if not os.geteuid() == 0:
             warning_label = QLabel(self.tr['warning_root'])
             warning_label.setStyleSheet("color: red")
-            layout.addWidget(warning_label)
+            llf_layout.addWidget(warning_label)
 
         # Disk seçimi
         drive_layout = QHBoxLayout()
@@ -295,7 +390,7 @@ class MainWindow(QMainWindow):
         self.update_drives()
         drive_layout.addWidget(drive_label)
         drive_layout.addWidget(self.drive_combo)
-        layout.addLayout(drive_layout)
+        llf_layout.addLayout(drive_layout)
 
         # Format metodu seçimi
         method_layout = QHBoxLayout()
@@ -304,17 +399,17 @@ class MainWindow(QMainWindow):
         self.method_combo.addItems(["Zero Fill", "Random Data", "Secure Erase"])
         method_layout.addWidget(method_label)
         method_layout.addWidget(self.method_combo)
-        layout.addLayout(method_layout)
+        llf_layout.addLayout(method_layout)
 
         # İlerleme çubuğu
         self.progress_bar = QProgressBar()
-        layout.addWidget(self.progress_bar)
+        llf_layout.addWidget(self.progress_bar)
 
         # Durum metni
         self.status_text = QTextEdit()
         self.status_text.setReadOnly(True)
         self.status_text.setMinimumHeight(100)
-        layout.addWidget(self.status_text)
+        llf_layout.addWidget(self.status_text)
 
         # Butonlar
         button_layout = QHBoxLayout()
@@ -325,17 +420,307 @@ class MainWindow(QMainWindow):
         self.stop_button.setEnabled(False)
         button_layout.addWidget(self.start_button)
         button_layout.addWidget(self.stop_button)
-        layout.addLayout(button_layout)
+        llf_layout.addLayout(button_layout)
 
         # Yenile butonu
         refresh_button = QPushButton(self.tr['refresh_disk_list'])
         refresh_button.clicked.connect(self.update_drives)
-        layout.addWidget(refresh_button)
+        llf_layout.addWidget(refresh_button)
 
-        # Hakkında butonu
-        about_button = QPushButton(self.tr['about_button'])
-        about_button.clicked.connect(self.show_about_dialog)
-        layout.addWidget(about_button)
+        # Tab 2: Disk Biçimlendirme
+        format_tab = QWidget()
+        format_layout = QVBoxLayout(format_tab)
+        
+        # Disk seçimi
+        format_drive_layout = QHBoxLayout()
+        format_drive_label = QLabel(self.tr['disk_label'])
+        self.format_drive_combo = QComboBox()
+        self.update_format_drives()
+        format_drive_layout.addWidget(format_drive_label)
+        format_drive_layout.addWidget(self.format_drive_combo)
+        format_layout.addLayout(format_drive_layout)
+
+        # Format tipi seçimi
+        format_type_layout = QHBoxLayout()
+        format_type_label = QLabel(self.tr['format_type_label'])
+        self.format_type_combo = QComboBox()
+        self.format_type_combo.addItems(["NTFS", "FAT32", "FAT", "exFAT", "ext4"])
+        # Format tipi değiştiğinde bölümleri güncelle
+        self.format_type_combo.currentTextChanged.connect(self.update_partition_formats)
+        format_type_layout.addWidget(format_type_label)
+        format_type_layout.addWidget(self.format_type_combo)
+        format_layout.addLayout(format_type_layout)
+
+        # Bölümlendirme seçenekleri
+        partition_group = QWidget()
+        partition_layout = QVBoxLayout(partition_group)
+
+        # Bölümlendirme başlığı
+        partition_title = QLabel(self.tr['partition_title'])
+        partition_title.setStyleSheet("font-weight: bold; font-size: 14px;")
+        partition_layout.addWidget(partition_title)
+
+        # Bölüm sayısı seçimi
+        partition_count_layout = QHBoxLayout()
+        partition_count_label = QLabel(self.tr['partition_count'])
+        self.partition_count_combo = QComboBox()
+        self.partition_count_combo.addItems(["1", "2", "3", "4"])
+        self.partition_count_combo.currentIndexChanged.connect(self.update_partition_inputs)
+        partition_count_layout.addWidget(partition_count_label)
+        partition_count_layout.addWidget(self.partition_count_combo)
+        partition_layout.addLayout(partition_count_layout)
+
+        # Bölüm boyutları için container
+        self.partition_sizes_widget = QWidget()
+        self.partition_sizes_layout = QVBoxLayout(self.partition_sizes_widget)
+        partition_layout.addWidget(self.partition_sizes_widget)
+
+        format_layout.addWidget(partition_group)
+        
+        # İlk bölüm giriş alanlarını oluştur
+        self.update_partition_inputs()
+        
+        # Format ilerleme çubuğu
+        self.format_progress_bar = QProgressBar()
+        format_layout.addWidget(self.format_progress_bar)
+
+        # Format butonları
+        format_button_layout = QHBoxLayout()
+        self.format_button = QPushButton(self.tr['format_button'])
+        self.format_button.clicked.connect(self.start_disk_format)
+        self.format_refresh_button = QPushButton(self.tr['refresh_button'])
+        self.format_refresh_button.clicked.connect(self.update_format_drives)
+        format_button_layout.addWidget(self.format_button)
+        format_button_layout.addWidget(self.format_refresh_button)
+        format_layout.addLayout(format_button_layout)
+
+        format_layout.addStretch()
+
+        # Tab 3: Seçenekler
+        settings_tab = QWidget()
+        settings_layout = QVBoxLayout(settings_tab)
+
+        # Scroll Area ekle
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        
+        # İçerik widget'ı
+        settings_content = QWidget()
+        settings_content_layout = QVBoxLayout(settings_content)
+        
+        # Dil Ayarları Grubu
+        lang_group = QWidget()
+        lang_layout = QVBoxLayout(lang_group)
+        
+        lang_title = QLabel(self.tr['language_settings'])
+        lang_title.setStyleSheet("font-weight: bold; font-size: 14px;")
+        lang_layout.addWidget(lang_title)
+        
+        lang_select_layout = QHBoxLayout()
+        lang_label = QLabel(self.tr['language'])
+        self.lang_combo = QComboBox()
+        self.lang_combo.addItem("Türkçe", "tr")
+        self.lang_combo.addItem("English", "en")
+        
+        index = self.lang_combo.findData(self.current_language)
+        if index >= 0:
+            self.lang_combo.setCurrentIndex(index)
+        
+        self.lang_combo.currentIndexChanged.connect(self.change_language)
+        lang_select_layout.addWidget(lang_label)
+        lang_select_layout.addWidget(self.lang_combo)
+        lang_layout.addLayout(lang_select_layout)
+        
+        settings_content_layout.addWidget(lang_group)
+        
+        # Tema Ayarları Grubu
+        theme_group = QWidget()
+        theme_layout = QVBoxLayout(theme_group)
+        
+        theme_title = QLabel(self.tr['theme_settings'])
+        theme_title.setStyleSheet("font-weight: bold; font-size: 14px;")
+        theme_layout.addWidget(theme_title)
+        
+        self.dark_theme_radio = QRadioButton(self.tr['dark_theme'])
+        self.light_theme_radio = QRadioButton(self.tr['light_theme'])
+        
+        # Mevcut tema seçimini işaretle
+        if self.current_theme == 'dark':
+            self.dark_theme_radio.setChecked(True)
+        else:
+            self.light_theme_radio.setChecked(True)
+        
+        self.dark_theme_radio.toggled.connect(self.change_theme)
+        theme_layout.addWidget(self.dark_theme_radio)
+        theme_layout.addWidget(self.light_theme_radio)
+        
+        settings_content_layout.addWidget(theme_group)
+        
+        # Güvenlik Ayarları
+        security_group = QWidget()
+        security_layout = QVBoxLayout(security_group)
+        
+        security_title = QLabel(self.tr['security_settings'])
+        security_title.setStyleSheet("font-weight: bold; font-size: 14px;")
+        security_layout.addWidget(security_title)
+        
+        # İşlem onayı
+        self.confirm_operations = QCheckBox(self.tr['confirm_operations'])
+        self.confirm_operations.setChecked(self.settings.value('confirm_operations', True, bool))
+        self.confirm_operations.stateChanged.connect(
+            lambda state: self.settings.setValue('confirm_operations', bool(state))
+        )
+        security_layout.addWidget(self.confirm_operations)
+        
+        # Detaylı log tutma ve log görüntüleme için yatay düzen
+        log_layout = QHBoxLayout()
+        
+        # Detaylı log tutma
+        self.detailed_logging = QCheckBox(self.tr['detailed_logging'])
+        self.detailed_logging.setChecked(self.settings.value('detailed_logging', False, bool))
+        self.detailed_logging.stateChanged.connect(
+            lambda state: self.settings.setValue('detailed_logging', bool(state))
+        )
+        log_layout.addWidget(self.detailed_logging)
+        
+        # Log görüntüleme butonu
+        self.view_logs_button = QPushButton(self.tr['view_logs'])
+        self.view_logs_button.clicked.connect(self.view_logs)
+        log_layout.addWidget(self.view_logs_button)
+        
+        security_layout.addLayout(log_layout)
+        
+        settings_content_layout.addWidget(security_group)
+        
+        # Format Ayarları
+        format_settings_group = QWidget()
+        format_settings_layout = QVBoxLayout(format_settings_group)
+        
+        format_settings_title = QLabel(self.tr['format_settings'])
+        format_settings_title.setStyleSheet("font-weight: bold; font-size: 14px;")
+        format_settings_layout.addWidget(format_settings_title)
+        
+        # Varsayılan format tipi
+        default_format_layout = QHBoxLayout()
+        default_format_label = QLabel(self.tr['default_format_type'])
+        self.default_format_combo = QComboBox()
+        self.default_format_combo.addItems(["NTFS", "FAT32", "FAT", "exFAT", "ext4"])
+        current_default = self.settings.value('default_format', "NTFS")
+        index = self.default_format_combo.findText(current_default)
+        if index >= 0:
+            self.default_format_combo.setCurrentIndex(index)
+        self.default_format_combo.currentTextChanged.connect(
+            lambda text: self.settings.setValue('default_format', text)
+        )
+        default_format_layout.addWidget(default_format_label)
+        default_format_layout.addWidget(self.default_format_combo)
+        format_settings_layout.addLayout(default_format_layout)
+        
+        settings_content_layout.addWidget(format_settings_group)
+        
+        # Performans Ayarları
+        performance_group = QWidget()
+        performance_layout = QVBoxLayout(performance_group)
+        
+        performance_title = QLabel(self.tr['performance_settings'])
+        performance_title.setStyleSheet("font-weight: bold; font-size: 14px;")
+        performance_layout.addWidget(performance_title)
+        
+        # İşlem hızı
+        speed_layout = QHBoxLayout()
+        speed_label = QLabel(self.tr['operation_speed'])
+        self.speed_combo = QComboBox()
+        self.speed_combo.addItems([
+            self.tr['speed_normal'],
+            self.tr['speed_fast'],
+            self.tr['speed_very_fast']
+        ])
+        current_speed = self.settings.value('operation_speed', "Normal")
+        index = self.speed_combo.findText(current_speed)
+        if index >= 0:
+            self.speed_combo.setCurrentIndex(index)
+        self.speed_combo.currentTextChanged.connect(
+            lambda text: self.settings.setValue('operation_speed', text)
+        )
+        speed_layout.addWidget(speed_label)
+        speed_layout.addWidget(self.speed_combo)
+        performance_layout.addLayout(speed_layout)
+        
+        # Otomatik yenileme
+        self.auto_refresh = QCheckBox(self.tr['auto_refresh'])
+        self.auto_refresh.setChecked(self.settings.value('auto_refresh', True, bool))
+        self.auto_refresh.stateChanged.connect(
+            lambda state: self.settings.setValue('auto_refresh', bool(state))
+        )
+        performance_layout.addWidget(self.auto_refresh)
+        
+        settings_content_layout.addWidget(performance_group)
+        
+        # Gelişmiş Ayarlar
+        advanced_group = QWidget()
+        advanced_layout = QVBoxLayout(advanced_group)
+        
+        advanced_title = QLabel(self.tr['advanced_settings'])
+        advanced_title.setStyleSheet("font-weight: bold; font-size: 14px;")
+        advanced_layout.addWidget(advanced_title)
+        
+        # Bölüm hizalama
+        alignment_layout = QHBoxLayout()
+        alignment_label = QLabel(self.tr['partition_alignment'])
+        self.alignment_spin = QSpinBox()
+        self.alignment_spin.setRange(1, 4096)
+        self.alignment_spin.setValue(self.settings.value('partition_alignment', 1, int))
+        self.alignment_spin.valueChanged.connect(
+            lambda value: self.settings.setValue('partition_alignment', value)
+        )
+        alignment_layout.addWidget(alignment_label)
+        alignment_layout.addWidget(self.alignment_spin)
+        advanced_layout.addLayout(alignment_layout)
+        
+        # Gelişmiş mod
+        self.advanced_mode = QCheckBox(self.tr['advanced_mode'])
+        self.advanced_mode.setChecked(self.settings.value('advanced_mode', False, bool))
+        self.advanced_mode.stateChanged.connect(
+            lambda state: self.settings.setValue('advanced_mode', bool(state))
+        )
+        advanced_layout.addWidget(self.advanced_mode)
+        
+        settings_content_layout.addWidget(advanced_group)
+        
+        # Boşluk ekle
+        settings_content_layout.addStretch()
+        
+        # Scroll Area'ya içerik widget'ını ekle
+        scroll.setWidget(settings_content)
+        
+        # Ana layout'a Scroll Area'yı ekle
+        settings_layout.addWidget(scroll)
+
+        # Tab 4: Hakkında
+        about_tab = QWidget()
+        about_layout = QVBoxLayout(about_tab)
+
+        logo_label = QLabel()
+        logo_path = get_resource_path("llfwlo.png")
+        pixmap = QPixmap(logo_path)
+        scaled_pixmap = pixmap.scaled(100, 100, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        logo_label.setPixmap(scaled_pixmap)
+        logo_label.setAlignment(Qt.AlignCenter)
+        about_layout.addWidget(logo_label)
+
+        about_label = QLabel(self.tr['about_content'])
+        about_label.setWordWrap(True)
+        about_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        about_layout.addWidget(about_label)
+
+        # Tabları ekle
+        tab_widget.addTab(llf_tab, self.tr['llf_tab'])
+        tab_widget.addTab(format_tab, self.tr['disk_format_tab'])
+        tab_widget.addTab(settings_tab, self.tr['settings_tab'])
+        tab_widget.addTab(about_tab, self.tr['about_tab'])
+        
+        layout.addWidget(tab_widget)
 
     def change_language(self):
         new_lang = self.lang_combo.currentData()
@@ -366,29 +751,63 @@ class MainWindow(QMainWindow):
         self.method_combo.setItemText(0, self.tr['format_method'])
         # Diğer metinleri güncelle
 
-    def get_disk_info(self, dev_name):
-        """Disk bilgilerini al"""
+    def safe_run_command(self, command, check=True, timeout=30):
+        """Komutları güvenli bir şekilde çalıştır"""
         try:
-            size_output = subprocess.check_output(
-                ['lsblk', '-dn', '-o', 'SIZE', f'/dev/{dev_name}'],
-                encoding='utf-8'
-            ).strip()
-
-            blkid_output = subprocess.check_output(
-                ['blkid', f'/dev/{dev_name}'],
+            result = subprocess.run(
+                command,
+                check=check,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
                 encoding='utf-8',
-                stderr=subprocess.DEVNULL
-            ).strip()
+                timeout=timeout
+            )
+            return result
+        except subprocess.TimeoutExpired:
+            QMessageBox.critical(self, self.tr['error'], f"Komut zaman aşımına uğradı: {' '.join(command)}")
+            return None
+        except subprocess.CalledProcessError as e:
+            QMessageBox.critical(self, self.tr['error'], f"Komut hatası: {str(e)}")
+            return None
+        except Exception as e:
+            QMessageBox.critical(self, self.tr['error'], f"Beklenmeyen hata: {str(e)}")
+            return None
 
-            label = None
-            if 'LABEL=' in blkid_output:
-                label = blkid_output.split('LABEL="')[1].split('"')[0]
+    def get_disk_info(self, dev_name):
+        """Disk bilgilerini güvenli bir şekilde al"""
+        try:
+            # Disk varlığını kontrol et
+            if not os.path.exists(f"/dev/{dev_name}"):
+                return None, None, None, None
 
-            return size_output, label
-        except:
-            return None, None
+            # Disk boyutunu al
+            size_cmd = self.safe_run_command(['lsblk', '-dn', '-o', 'SIZE', f'/dev/{dev_name}'])
+            size_output = size_cmd.stdout.strip() if size_cmd else None
+
+            # Disk modelini al
+            model_cmd = self.safe_run_command(['lsblk', '-dn', '-o', 'MODEL', f'/dev/{dev_name}'])
+            model_output = model_cmd.stdout.strip() if model_cmd else None
+
+            # Disk tipini al
+            type_cmd = self.safe_run_command(['lsblk', '-dn', '-o', 'TYPE', f'/dev/{dev_name}'])
+            type_output = type_cmd.stdout.strip() if type_cmd else None
+
+            # Disk etiketini al
+            try:
+                blkid_cmd = self.safe_run_command(['blkid', f'/dev/{dev_name}'], check=False)
+                label = None
+                if blkid_cmd and 'LABEL=' in blkid_cmd.stdout:
+                    label = blkid_cmd.stdout.split('LABEL="')[1].split('"')[0]
+            except:
+                label = None
+
+            return size_output, model_output, type_output, label
+        except Exception as e:
+            print(f"Disk bilgisi alınırken hata: {str(e)}")
+            return None, None, None, None
 
     def update_drives(self):
+        """İlk sekmedeki disk listesini güncelle"""
         self.drive_combo.clear()
         try:
             output = subprocess.check_output(
@@ -400,12 +819,28 @@ class MainWindow(QMainWindow):
                 parts = line.split()
                 if len(parts) >= 2 and parts[1] == "disk":
                     dev_name = parts[0]
-                    size, label = self.get_disk_info(dev_name)
+                    size, model, type_, label = self.get_disk_info(dev_name)
                     
                     if size:
-                        display_text = f"/dev/{dev_name} [{size}]"
+                        display_text = f"/dev/{dev_name}"
+                        if model:
+                            display_text += f" [{model}]"
+                        display_text += f" {size}"
                         if label:
                             display_text += f" - {label}"
+                        
+                        # LLF durumunu kontrol et
+                        try:
+                            parted_output = subprocess.check_output(
+                                ['parted', '-s', f'/dev/{dev_name}', 'print'],
+                                stderr=subprocess.DEVNULL,
+                                encoding='utf-8'
+                            )
+                            if "unrecognised disk label" in parted_output.lower():
+                                display_text += " [LLF Yapılmış]"
+                        except:
+                            display_text += " [LLF Yapılmış]"
+                        
                         self.drive_combo.addItem(display_text)
         except Exception as e:
             self.add_status(f"{self.tr['error']}: {str(e)}")
@@ -484,12 +919,328 @@ class MainWindow(QMainWindow):
         else:
             QMessageBox.critical(self, self.tr['error'], self.tr['format_failed'])
 
+    def update_format_drives(self):
+        """İkinci sekmedeki disk listesini güncelle"""
+        self.format_drive_combo.clear()
+        try:
+            # Tüm diskleri ve bölümleri listele
+            output = subprocess.check_output(
+                ['lsblk', '-n', '-o', 'NAME,TYPE'],
+                encoding='utf-8'
+            )
+            
+            for line in output.strip().split('\n'):
+                parts = line.split()
+                if len(parts) >= 2:
+                    dev_name = parts[0]
+                    dev_type = parts[1]
+                    
+                    # Sadece disk ve loop cihazlarını göster
+                    if dev_type in ['disk', 'loop']:
+                        size, model, type_, label = self.get_disk_info(dev_name)
+                        
+                        if size:
+                            display_text = f"/dev/{dev_name}"
+                            if model:
+                                display_text += f" [{model}]"
+                            display_text += f" {size}"
+                            if label:
+                                display_text += f" - {label}"
+                            
+                            # LLF yapılmış diskleri belirt
+                            try:
+                                # Disk bölüm tablosunu kontrol et
+                                parted_output = subprocess.check_output(
+                                    ['parted', '-s', f'/dev/{dev_name}', 'print'],
+                                    stderr=subprocess.DEVNULL,
+                                    encoding='utf-8'
+                                )
+                                if "unrecognised disk label" in parted_output.lower():
+                                    display_text += " [LLF Yapılmış]"
+                            except:
+                                display_text += " [LLF Yapılmış]"
+                            
+                            self.format_drive_combo.addItem(display_text)
+        except Exception as e:
+            QMessageBox.critical(self, self.tr['error'], str(e))
+
+    def start_disk_format(self):
+        """Seçili diski bölümlendir ve formatla"""
+        if not self.format_drive_combo.currentText():
+            QMessageBox.warning(self, self.tr['warning'], self.tr['select_disk'])
+            return
+
+        device = self.format_drive_combo.currentText().split()[0]
+
+        reply = QMessageBox.warning(
+            self,
+            self.tr['warning'],
+            f"Disk {device} bölümlendirilecek ve formatlanacak. Tüm veriler silinecek!\n\nDevam edilsin mi?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+
+        if reply == QMessageBox.Yes:
+            try:
+                # Diski bağlı değilse ayır
+                subprocess.run(['umount', device], check=False)
+                
+                self.format_progress_bar.setValue(10)
+                
+                # Bölümlendirme ve formatlama işlemini başlat
+                if self.create_partitions(device):
+                    self.format_progress_bar.setValue(100)
+                    QMessageBox.information(self, self.tr['info'], self.tr['format_success'])
+                
+            except Exception as e:
+                QMessageBox.critical(self, self.tr['error'], f"{self.tr['error']}: {str(e)}")
+            finally:
+                self.format_progress_bar.setValue(0)
+
+    def change_theme(self):
+        """Tema değişikliğini kaydet"""
+        new_theme = 'dark' if self.dark_theme_radio.isChecked() else 'light'
+        if new_theme != self.current_theme:
+            self.current_theme = new_theme
+            self.settings.setValue('theme', new_theme)
+            QMessageBox.information(self, self.tr['info'], self.tr['theme_restart'])
+
+    def update_partition_inputs(self):
+        """Seçilen bölüm sayısına göre boyut giriş alanlarını güncelle"""
+        # Mevcut giriş alanlarını temizle
+        for i in reversed(range(self.partition_sizes_layout.count())): 
+            self.partition_sizes_layout.itemAt(i).widget().setParent(None)
+        
+        count = int(self.partition_count_combo.currentText())
+        # Seçili format tipini al
+        selected_format = self.format_type_combo.currentText()
+        
+        for i in range(count):
+            row_layout = QHBoxLayout()
+            
+            label = QLabel(f"Bölüm {i+1} Boyutu (GB):")
+            size_input = QSpinBox()
+            size_input.setMinimum(1)
+            size_input.setMaximum(2000)
+            size_input.setValue(20)
+            
+            format_label = QLabel("Format:")
+            format_combo = QComboBox()
+            format_combo.addItems(["NTFS", "FAT32", "FAT", "exFAT", "ext4"])
+            # Seçili format tipini ayarla
+            index = format_combo.findText(selected_format)
+            if index >= 0:
+                format_combo.setCurrentIndex(index)
+            
+            row_layout.addWidget(label)
+            row_layout.addWidget(size_input)
+            row_layout.addWidget(format_label)
+            row_layout.addWidget(format_combo)
+            
+            container = QWidget()
+            container.setLayout(row_layout)
+            self.partition_sizes_layout.addWidget(container)
+
+    def create_partitions(self, device):
+        """Diski bölümlendir ve formatla"""
+        try:
+            if not os.path.exists(device):
+                QMessageBox.critical(self, self.tr['error'], 
+                    self.tr['disk_not_found'].format(device))
+                return False
+
+            # Diskin kullanımda olup olmadığını kontrol et
+            mount_check = self.safe_run_command(['lsof', device], check=False)
+            if mount_check and mount_check.returncode == 0:
+                QMessageBox.critical(self, self.tr['error'], 
+                    self.tr['disk_in_use'].format(device))
+                return False
+
+            self.safe_run_command(['umount', device], check=False)
+            
+            # GPT tablosu oluştur
+            if not self.safe_run_command(['parted', '-s', device, 'mklabel', 'gpt']):
+                return False
+            # Disk boyutunu al
+            try:
+                disk_cmd = self.safe_run_command(['blockdev', '--getsize64', device])
+                if not disk_cmd:
+                    return False
+                total_disk_size = int(disk_cmd.stdout.strip()) // (1024 * 1024 * 1024)
+            except Exception as e:
+                QMessageBox.critical(self, self.tr['error'], f"Disk boyutu alınamadı: {str(e)}")
+                return False
+            # Bölüm sayısını kontrol et
+            count = int(self.partition_count_combo.currentText())
+            if count < 1 or count > 4:
+                QMessageBox.critical(self, self.tr['error'], "Geçersiz bölüm sayısı!")
+                return False
+            # Widget kontrolü
+            if not self.partition_sizes_layout or self.partition_sizes_layout.count() < count:
+                QMessageBox.critical(self, self.tr['error'], "Bölüm ayarları eksik!")
+                return False
+            start = 1
+            total_size = 0
+            created_partitions = []
+            # Bölümleri oluştur
+            for i in range(count):
+                try:
+                    # Widget kontrolü
+                    container = self.partition_sizes_layout.itemAt(i)
+                    if not container or not container.widget():
+                        raise ValueError(f"Bölüm {i+1} ayarları bulunamadı!")
+                    row_layout = container.widget().layout()
+                    if not row_layout:
+                        raise ValueError(f"Bölüm {i+1} düzeni bulunamadı!")
+                    size_input = row_layout.itemAt(1).widget()
+                    format_combo = row_layout.itemAt(3).widget()
+                    if not size_input or not format_combo:
+                        raise ValueError(f"Bölüm {i+1} için gerekli alanlar bulunamadı!")
+                    size = int(size_input.value())
+                    format_type = format_combo.currentText().lower()
+                    # Boyut kontrolü
+                    if size < 1:
+                        raise ValueError(f"Bölüm {i+1} için geçersiz boyut!")
+                    # Son bölüm için kalan alan
+                    if i == count - 1:
+                        end = -1
+                    else:
+                        end = start + (size * 1024)
+                        total_size += size
+                        if total_size > total_disk_size:
+                            raise ValueError(
+                                f"Toplam bölüm boyutu ({total_size}GB) "
+                                f"disk boyutundan ({total_disk_size}GB) büyük!"
+                            )
+                    # Bölüm oluştur
+                    parted_cmd = ['parted', '-s', device, 'mkpart', 'primary']
+                    if end == -1:
+                        parted_cmd.extend([f'{start}MiB', '100%'])
+                    else:
+                        parted_cmd.extend([f'{start}MiB', f'{end}MiB'])
+                    if not self.safe_run_command(parted_cmd):
+                        raise ValueError(f"Bölüm {i+1} oluşturulamadı!")
+                    # Bölümün oluşmasını bekle
+                    partition_name = f"{device}{i+1}"
+                    created_partitions.append(partition_name)
+                    max_retries = 20
+                    for _ in range(max_retries):
+                        if os.path.exists(partition_name):
+                            break
+                        time.sleep(0.5)
+                    else:
+                        raise ValueError(f"Bölüm oluşturulamadı: {partition_name}")
+                    # Formatlama
+                    format_cmd = None
+                    max_format_retries = 3  # Maksimum deneme sayısı
+                    
+                    # Bölümün hazır olması için biraz bekle
+                    time.sleep(2)
+                    
+                    # Bölümü formatlamadan önce tekrar unmount et
+                    self.safe_run_command(['umount', partition_name], check=False)
+                    
+                    for retry in range(max_format_retries):
+                        try:
+                            if format_type == "ntfs":
+                                format_cmd = ['mkfs.ntfs', '-f', '-Q', partition_name]
+                            elif format_type == "fat32":
+                                # FAT32 için özel kontroller
+                                size_mb = size * 1024  # GB'dan MB'a çevir
+                                if size_mb > 32 * 1024:  # 32GB'dan büyükse
+                                    format_cmd = ['mkfs.vfat', '-F', '32', '-S', '4096', partition_name]
+                                else:
+                                    format_cmd = ['mkfs.vfat', '-F', '32', partition_name]
+                            elif format_type == "fat":
+                                format_cmd = ['mkfs.vfat', '-F', '16', partition_name]
+                            elif format_type == "exfat":
+                                format_cmd = ['mkfs.exfat', partition_name]
+                            elif format_type == "ext4":
+                                format_cmd = ['mkfs.ext4', '-F', partition_name]
+
+                            if format_cmd:
+                                # Formatlamadan önce partition'ın hazır olduğundan emin ol
+                                if not os.path.exists(partition_name):
+                                    time.sleep(1)
+                                    continue
+                                    
+                                # Formatlama işlemini çalıştır
+                                result = self.safe_run_command(format_cmd, timeout=120)  # Timeout süresini artır
+                                if result and result.returncode == 0:
+                                    break  # Başarılı ise döngüden çık
+                                else:
+                                    if retry < max_format_retries - 1:  # Son deneme değilse
+                                        time.sleep(2)  # Bir sonraki denemeden önce bekle
+                                        continue
+                                    else:
+                                        raise ValueError(f"Bölüm {i+1} formatlanamadı! Komut: {' '.join(format_cmd)}")
+                        except Exception as e:
+                            if retry < max_format_retries - 1:  # Son deneme değilse
+                                time.sleep(2)  # Bir sonraki denemeden önce bekle
+                                continue
+                            else:
+                                raise ValueError(f"Bölüm {i+1} formatlanırken hata: {str(e)}")
+                    start = end if end != -1 else start
+                    self.format_progress_bar.setValue(int((i + 1) * 100 / count))
+                except Exception as e:
+                    # Hata durumunda oluşturulan bölümleri temizle
+                    self.clean_up_partitions(device, created_partitions)
+                    QMessageBox.critical(self, self.tr['error'], str(e))
+                    return False
+            return True
+        except Exception as e:
+            QMessageBox.critical(self, self.tr['error'], f"Bölümlendirme hatası: {str(e)}")
+            return False
+    def clean_up_partitions(self, device, partitions):
+        """Hata durumunda oluşturulan bölümleri temizle"""
+        try:
+            # Bölümleri ayır
+            for partition in partitions:
+                self.safe_run_command(['umount', partition], check=False)
+
+            # Disk bölüm tablosunu temizle
+            self.safe_run_command(['parted', '-s', device, 'mklabel', 'gpt'], check=False)
+        except:
+            pass
+    def update_partition_formats(self, selected_format):
+        """Tüm bölümlerin format tipini güncelle"""
+        try:
+            # Mevcut bölüm sayısını al
+            count = self.partition_sizes_layout.count()
+            
+            # Her bölümün format combobox'ını güncelle
+            for i in range(count):
+                container = self.partition_sizes_layout.itemAt(i)
+                if container and container.widget():
+                    row_layout = container.widget().layout()
+                    if row_layout:
+                        format_combo = row_layout.itemAt(3).widget()
+                        if format_combo and isinstance(format_combo, QComboBox):
+                            # Seçili format tipini bul ve ayarla
+                            index = format_combo.findText(selected_format)
+                            if index >= 0:
+                                format_combo.setCurrentIndex(index)
+        except Exception as e:
+            QMessageBox.critical(self, self.tr['error'], f"Format tipi güncellenirken hata: {str(e)}")
+    def view_logs(self):
+        """Log dosyalarını görüntüle"""
+        try:
+            # Log dizinini oluştur
+            log_dir = os.path.expanduser("~/.local/share/llfw/logs")
+            os.makedirs(log_dir, exist_ok=True)
+            
+            # Platformlar arası uyumluluk için
+            if sys.platform.startswith('linux'):
+                subprocess.Popen(['xdg-open', log_dir])
+            else:
+                os.startfile(log_dir)
+        except Exception as e:
+            QMessageBox.critical(self, self.tr['error'], 
+                               self.tr['log_dir_error'].format(str(e)))
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     if ICON_PATH:
         app.setWindowIcon(QIcon(ICON_PATH))
-    app.setPalette(DarkPalette())
-    app.setStyle("Fusion")
     
     window = MainWindow()
     window.show()
